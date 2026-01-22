@@ -53,6 +53,7 @@ class VartecPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->homeUrl('/vartec/dashboard');
     }
 }

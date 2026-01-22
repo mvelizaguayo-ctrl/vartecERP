@@ -16,17 +16,20 @@ class CategoryResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
-    public static function form(Forms\Form $form): Forms\Form
+    public static function form(\Filament\Forms\Form $form): \Filament\Forms\Form
     {
-        return $form->schema([
-            TextInput::make('name')->required()->maxLength(255),
-            Forms\Components\Select::make('parent_id')
-                ->label('Parent')
-                ->options(fn (callable $get) => Category::getTreeOptions($get('id') ?? null))
-                ->searchable()
-                ->nullable(),
-            Forms\Components\Textarea::make('description')->rows(3),
-        ]);
+        return $form
+            ->schema([
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->label('Nombre de la Categoría'),
+
+                Forms\Components\Select::make('parent_id')
+                    ->label('Subcategoría de (Padre)')
+                    ->options(fn () => \App\Models\Category::getTreeOptions())
+                    ->searchable()
+                    ->nullable(),
+            ]);
     }
 
     public static function table(Table $table): Table

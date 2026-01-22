@@ -39,67 +39,56 @@ class Category extends Model
     public static function getTreeOptions(?int $excludeId = null): array
     {
         $items = self::query()->get(['id', 'name', 'parent_id']);
+        $items = self::query()->get(['id', 'name', 'parent_id'])->keyBy('id');
 
         // Build children map: parent_id => [items]
+        $children = [];
+        foreach ($items as $item) {
+            $parent = $item->parent_id ?? 0;
+            $children[$parent][] = $item;
+        }
 
-
-
-
-
-
-
-
-
-            $items = self::query()->get(['id', 'name', 'parent_id'])->keyBy('id');
-
-            // Build children map: parent_id => [items]
-            $children = [];
-            foreach ($items as $item) {
-                $parent = $item->parent_id ?? 0;
-                $children[$parent][] = $item;
-            }
-
-            // Determine excluded ids (node + descendants) if needed
-            $excludedIds = [];
-            if ($excludeId !== null) {
-                $stack = [$excludeId];
-                while (! empty($stack)) {
-                    $cur = array_pop($stack);
-                    $excludedIds[] = $cur;
-                    if (isset($children[$cur])) {
-                        foreach ($children[$cur] as $c) {
-                            $stack[] = $c->id;
-                        }
+        // Determine excluded ids (node + descendants) if needed
+        $excludedIds = [];
+        if ($excludeId !== null) {
+            $stack = [$excludeId];
+            while (! empty($stack)) {
+                $cur = array_pop($stack);
+                $excludedIds[] = $cur;
+                if (isset($children[$cur])) {
+                    foreach ($children[$cur] as $c) {
+                        $stack[] = $c->id;
                     }
                 }
             }
+        }
 
-            $options = [];
+        $options = [];
 
-            $traverse = function ($parentId, $path = []) use (&$traverse, &$children, &$options, $excludedIds) {
-                if (! isset($children[$parentId])) {
-                    return;
+        $traverse = function ($parentId, $path = []) use (&$traverse, &$children, &$options, $excludedIds) {
+            if (! isset($children[$parentId])) {
+                return;
+            }
+
+            // sort children by name
+            $list = collect($children[$parentId])->sortBy('name');
+
+            foreach ($list as $child) {
+                if (in_array($child->id, $excludedIds, true)) {
+                    continue;
                 }
 
-                // sort children by name
-                $list = collect($children[$parentId])->sortBy('name');
+                $currentPath = array_merge($path, [$child->name]);
+                $options[$child->id] = implode(' > ', $currentPath);
 
-                foreach ($list as $child) {
-                    if (in_array($child->id, $excludedIds, true)) {
-                        continue;
-                    }
+                $traverse($child->id, $currentPath);
+            }
+        };
 
-                    $currentPath = array_merge($path, [$child->name]);
-                    $options[$child->id] = implode(' > ', $currentPath);
+        // start from root (parent_id null => 0)
+        $traverse(0, []);
 
-                    $traverse($child->id, $currentPath);
-                }
-            };
-
-            // start from root (parent_id null => 0)
-            $traverse(0, []);
-
-            return $options;
+        return $options;
     }
 
     /**
