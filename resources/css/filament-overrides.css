@@ -1,0 +1,4 @@
+/* Forzar ancho máximo en el modal de productos Filament */
+.filament-modal-container {
+    max-width: 98vw !important;
+}
